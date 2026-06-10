@@ -1,0 +1,50 @@
+{
+  "settings": {
+    "chat_id": "863740024",
+    "from_city": "Великий Новгород",
+    "to_city": "Яжелбицы",
+    "depart_date": "12.06.2026"
+  },
+  "last_trips": [
+    {
+      "time": "08:00:00",
+      "name": "Великий Новгород - Валдай",
+      "price": 650,
+      "free_seats": 0,
+      "total_seats": 53,
+      "booked": 53
+    },
+    {
+      "time": "11:45:00",
+      "name": "Санкт-Петербург - Демянск",
+      "price": 1450,
+      "free_seats": 1,
+      "total_seats": 51,
+      "booked": 50
+    },
+    {
+      "time": "11:50:00",
+      "name": "Санкт-Петербург - Демянск",
+      "price": 1270,
+      "free_seats": 28,
+      "total_seats": 49,
+      "booked": 21
+    },
+    {
+      "time": "15:30:00",
+      "name": "",
+      "price": 1250,
+      "free_seats": 46,
+      "total_seats": 51,
+      "booked": 5
+    },
+    {
+      "time": "18:15:00",
+      "name": "Санкт-Петербург - Валдай",
+      "price": 1280,
+      "free_seats": 38,
+      "total_seats": 53,
+      "booked": 15
+    }
+  ]
+}

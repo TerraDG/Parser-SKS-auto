@@ -7,18 +7,20 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+
+
 # ================= НАСТРОЙКИ =================
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8630745594:AAFOitHUKtgB-6_fU38SYLDtMxlzC7URDnw")
 DEFAULT_CHAT_ID = os.getenv("CHAT_ID", "863740024")
 
 DEFAULT_FROM_CITY = "Великий Новгород"
-DEFAULT_TO_CITY = "Яжелбицы"
+DEFAULT_TO_CITY = "443"
 DEFAULT_DEPART_DATE = "20.06.2026"
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "600"))  # 10 минут в секундах
 
 # Быстрые маршруты для inline-кнопок. Новые маршруты можно добавлять сюда.
 ROUTE_PRESETS = [
-    ("Великий Новгород", "Яжелбицы"),
+    ("Великий Новгород", "443"),   # Яжелбицы
 ]
 
 STATE_FILE = "last_state.json"
@@ -122,7 +124,7 @@ def api_headers() -> Dict[str, str]:
 
 
 def get_city_id(session: requests.Session, city_name: str) -> Optional[str]:
-    """Получает ID города по названию."""
+    """Получает ID города по названию (парсит HTML-ответ)."""
     params = {
         "option": "com_bookpro",
         "controller": "bus",
@@ -133,14 +135,34 @@ def get_city_id(session: requests.Session, city_name: str) -> Optional[str]:
     resp = session.get(URL_API, params=params, headers=api_headers(), timeout=20)
     if resp.status_code != 200:
         return None
+
+    # Пробуем распарсить JSON (если вдруг вернётся)
     try:
         data = resp.json()
         if isinstance(data, list) and data:
             return str(data[0].get("id"))
-        if isinstance(data, dict):
-            return str(data.get("id")) if data.get("id") is not None else None
-    except ValueError:
-        return None
+        if isinstance(data, dict) and data.get("id"):
+            return str(data["id"])
+    except:
+        pass
+
+    # Иначе парсим HTML: ищем <option value='ID'>Название</option>
+    import re
+    pattern = re.compile(r"<option\s+value=['\"]([^'\"]+)['\"]>([^<]+)</option>")
+    for value, name in pattern.findall(resp.text):
+        if name.strip() == city_name:
+            return value
+
+    # Пробуем альтернативный endpoint
+    params["task"] = "findDestination_edited"
+    resp2 = session.get(URL_API, params=params, headers=api_headers(), timeout=20)
+    if resp2.status_code == 200:
+        # Здесь тоже может быть HTML, но структура другая
+        # Можно поискать return_search_id
+        pattern2 = re.compile(r"return_search_id=['\"]([^'\"]+)['\"]")
+        match = pattern2.search(resp2.text)
+        if match:
+            return match.group(1)
     return None
 
 
@@ -169,7 +191,12 @@ def get_free_seats(trip: Dict[str, Any]) -> Tuple[int, int, int]:
 
 def fetch_trips(session: requests.Session, from_city: str, to_city: str, date: str) -> Optional[List[Dict[str, Any]]]:
     """Запрашивает рейсы и возвращает список словарей с данными."""
-    to_id = get_city_id(session, to_city)
+    if to_city.isdigit():
+        to_id = to_city
+    else:
+        to_id = get_city_id(session, to_city)
+        if not to_id:
+            raise RuntimeError(f"не найден ID для города назначения: {to_city}")
     if not to_id:
         raise RuntimeError(f"не найден ID для города назначения: {to_city}")
 
